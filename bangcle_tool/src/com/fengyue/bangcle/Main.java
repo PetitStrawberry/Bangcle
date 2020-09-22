@@ -16,7 +16,7 @@ import org.dom4j.io.SAXReader;
 import org.dom4j.io.XMLWriter;
 
 /**
- * 
+ *
  * @author Administrator
  *
  */
@@ -29,7 +29,7 @@ public class Main {
 	private static String soName="libdexload";
 	/**
 	 * @param args
-	 * @throws IOException 
+	 * @throws IOException
 	 */
 	public static void main(String[] args) {
 		System.out.println("----------Bangcle Automation----------------");
@@ -39,22 +39,22 @@ public class Main {
 			System.out.println("usage:java -jar Bangcle.jar b apkName");
 			return;
 		}
-		
+
 		String apkName = args[1];
 //		String apkName="msgnow-release.apk";
 //		String apkName="unpack_permmgr.apk";
 //		String apkName="com.aispeech.weiyu_2.apk";
 		String apkPath=getWorkPath()+File.separator+apkName;
-		
-		
+
+
 		// 反编译目录
 		String workPath=getWorkPath();
 		String toolsPath=workPath+File.separator+"tools";
 		int pos=apkName.lastIndexOf(".");
 		String decompiledDirName=apkName.substring(0,pos);
 		System.out.println("apkPath:" + apkPath+ " decompiledDirName:"+decompiledDirName);
-		
-		
+
+
 		// 删除反编译目录
 		File outputFolder = new File(workPath + File.separator+"output");
 		if(!outputFolder.exists()){
@@ -75,9 +75,9 @@ public class Main {
 
 			// 确保apktool.jar放在工作目录下
 			SystemCommand.execute("java -jar tools/apktool.jar d " + apkPath+" -o "+decompiledFile.getAbsolutePath()+" -s -f");
-			
+
 			System.out.println("反编译结束,生成目录" + decompiledFile.getAbsolutePath());
-			
+
 			decompiled = true;
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
@@ -86,28 +86,28 @@ public class Main {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
 		//extract classes.dex
 		String assetDir=decompiledPath+File.separator+"assets";
 		File file_asset=new File(assetDir);
 		if(!file_asset.exists()){
 			file_asset.mkdirs();
-			
+
 		}
-		
+
 
 		String rawdex=decompiledPath+File.separator+"classes.dex";
-		
+
 		//encrypt raw dex
 		byte[] data=FileUtil.getFileByte(rawdex);
 		byte[] encrypt_data=AESUtil.encrypt(data, AES_KEY);
 		System.out.println("AES encrypt classes.dex finished");
 		FileUtil.byteToFile(encrypt_data, assetDir, "jiami.dat");
-		
+
 		System.out.println("copy jiami.dat to assets dir finished");
 		//delete orig raw dex
 		FileUtil.delete(new File(rawdex));
-		
+
 		try {
 			//将libdexload.so 复制到 assets目录下
 			FileUtil.copyFile(toolsPath+File.separator+soName+"_arm.so",assetDir+File.separator+soName+"_arm.so" );
@@ -123,7 +123,7 @@ public class Main {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
-		
+
 		if (decompiled) {
 			if (alterAndroidMainifest(decompiledFile.getAbsolutePath())) {
 
@@ -139,7 +139,7 @@ public class Main {
 					signApk_x509(outputPath,outputSignPath);
 					System.out.println("重签名完成");
 					System.out.println("加固Apk目录:"+outputSignPath);
-			
+
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -159,7 +159,7 @@ public class Main {
 	private static void signApk_x509(String unsignedApkPath, String signedApkPath){
 		try {
 			String command="java -jar tools/signapk.jar tools/testkey.x509.pem tools/testkey.pk8"+" "+unsignedApkPath+" "+signedApkPath;
-			
+
 			SystemCommand.execute(command);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -168,15 +168,15 @@ public class Main {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-				
+
 	}
 
 
-	
+
 
 	/**
 	 * 执行此方法确保，jarsigner的路径被添加到系统环境变量中
-	 * 
+	 *
 	 * @param unsignedApkPath
 	 *            未签名的apk的路径
 	 * @param signedApkPath
@@ -208,13 +208,13 @@ public class Main {
 	/**
 	 * 修改AndroidMinifest.xml中的Application Class为脱壳的Application Class名
 	 * 在Application标签中增加原Application Class名
-	 * 
+	 *
 	 * @param workPath
 	 */
 	private static boolean alterAndroidMainifest(String workPath) {
 		// TODO Auto-generated method stub
 		String manifestFileName = "AndroidManifest.xml";
-		File manifestFile = new File(workPath + "\\" + manifestFileName);
+		File manifestFile = new File(workPath + File.separator + manifestFileName);
 		if (!manifestFile.exists()) {
 			System.err.println("找不到" + manifestFile.getAbsolutePath());
 			return false;
@@ -258,16 +258,16 @@ public class Main {
 				mataDataEle.addAttribute("android:name", "APP_NAME");
 				mataDataEle.addAttribute("android:value", APP_NAME);
 			}
-			
+
 
 			manifestFile.delete();
-			
+
 			//处理中文字符的乱码
 			//参考：https://blog.csdn.net/zhengdesheng19930211/article/details/64443572
 //			java.io.Writer wr=new java.io.OutputStreamWriter(new java.io.FileOutputStream(manifestFile.getAbsolutePath()),"UTF-8");
 //			document.write(wr);
 //			wr.close();
-			
+
 			//下列方式不能处理中文字符 ，虽然这里设置了编码 但是保存的文件还是ANSI格式
 //			OutputFormat format = OutputFormat.createPrettyPrint();
 //			format.setEncoding("UTF-8");// 设置编码
@@ -277,7 +277,7 @@ public class Main {
 //			xmlwriter.write(document);
 //			xmlwriter.close();
 //			System.out.println("修改Manifest成功");
-			
+
 			//处理中文乱码
 			//参考:https://blog.csdn.net/zl594389970/article/details/53353813
 			System.out.println("使用方式3写入xml");
@@ -288,8 +288,8 @@ public class Main {
 			XMLWriter xmlwriter = new XMLWriter(out, format);
 			xmlwriter.write(document);
 			xmlwriter.close();
-			
-			
+
+
 			System.out.println("修改Manifest成功");
 			return true;
 		} catch (DocumentException e) {
@@ -308,7 +308,7 @@ public class Main {
 			return config;
 		}
 
-		File signerConfigFile = new File(getWorkPath() + "\\" + "config.xml");
+		File signerConfigFile = new File(getWorkPath() + File.separator + "config.xml");
 		if (!signerConfigFile.exists()) {
 			System.err.println("找不到" + signerConfigFile.getAbsolutePath());
 			return null;
